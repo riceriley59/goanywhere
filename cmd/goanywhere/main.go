@@ -1,8 +1,7 @@
-package goanywhere
+package main
 
 import "fmt"
 
-func main() int {
+func main() {
 	fmt.Println("Hello, World!")
-	return 0
 }
