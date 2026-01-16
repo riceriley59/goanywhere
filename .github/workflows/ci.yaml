@@ -53,6 +53,12 @@ jobs:
             reporting/unit.coverprofile
             reporting/coverage.html
 
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          file: reporting/unit.coverprofile
+          format: golang
+
       - name: Display coverage summary
         run: |
           echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY

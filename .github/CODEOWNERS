@@ -1,0 +1,24 @@
+# CODEOWNERS file
+# These owners will be requested for review when someone opens a pull request.
+
+# Default owner for everything in the repo
+* @riceriley59
+
+# Core parsing and types
+/internal/core/ @riceriley59
+
+# Plugin implementations
+/internal/plugins/ @riceriley59
+
+# CLI
+/internal/cli/ @riceriley59
+/cmd/ @riceriley59
+
+# CI/CD and build configuration
+/.github/ @riceriley59
+/Makefile @riceriley59
+/deps.mk @riceriley59
+
+# Documentation
+/docs/ @riceriley59
+/*.md @riceriley59
