@@ -83,6 +83,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: goanywhere-*
           merge-multiple: true
 
       - name: Create GitHub Release
