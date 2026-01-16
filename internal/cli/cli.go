@@ -22,10 +22,10 @@ func (e ExitCode) ToInt() int {
 
 func NewGoAnywhereCmd() *cobra.Command {
 	goAnywhereCmd := &cobra.Command{
-		Use:   "goanywhere",
-		Short: "Go bindings generator",
-		Long:  "Go bindings generator for multi-language support",
-		Version: version.GetVersion(),
+		Use:           "goanywhere",
+		Short:         "Go bindings generator",
+		Long:          "Go bindings generator for multi-language support",
+		Version:       version.GetVersion(),
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}

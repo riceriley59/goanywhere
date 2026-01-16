@@ -7,14 +7,29 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestFactory(t *testing.T) {
+func TestVersion(t *testing.T) {
 	RegisterFailHandler(Fail)
-
-	RunSpecs(t, "Version Test Suite")
+	RunSpecs(t, "Version Suite")
 }
 
-var _ = Describe("Version tests", func() {
-	It("Should true be true", func() {
-		Expect(true).To(BeTrue())
+var _ = Describe("Version", func() {
+	Describe("GetVersion", func() {
+		It("returns default version", func() {
+			Expect(GetVersion()).To(Equal("v0.0.0"))
+		})
+
+		It("returns custom version when set", func() {
+			oldVersion := VERSION
+			VERSION = "v1.2.3"
+			defer func() { VERSION = oldVersion }()
+
+			Expect(GetVersion()).To(Equal("v1.2.3"))
+		})
+	})
+
+	Describe("GIT_SHA", func() {
+		It("has default value", func() {
+			Expect(GIT_SHA).To(Equal("unknown"))
+		})
 	})
 })
