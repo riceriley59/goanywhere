@@ -1,7 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"os"
+	"github.com/riceriley59/goanywhere/internal/cli"
+)
 
 func main() {
-	fmt.Println("Hello, World!")
+	exitCode := cli.Execute()
+	os.Exit(exitCode.ToInt())
 }
