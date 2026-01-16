@@ -9,10 +9,8 @@ import (
 	"github.com/riceriley59/goanywhere/internal/core/factory"
 )
 
-
 // Ensure Plugin implements core.Plugin interface
 var _ core.Plugin = (*Plugin)(nil)
-
 
 func init() {
 	factory.Register("python", func(verbose bool) core.Plugin {
@@ -260,7 +258,7 @@ func (a *Plugin) writeFunctionSetup(buf *bytes.Buffer, fn core.ParsedFunc) error
 	}
 
 	// Write argtypes
-	buf.WriteString(fmt.Sprintf("    lib.%s.argtypes = [%s]\n", cFuncName, strings.Join(argtypes, ", ")))
+	fmt.Fprintf(buf, "    lib.%s.argtypes = [%s]\n", cFuncName, strings.Join(argtypes, ", "))
 
 	// Write restype
 	if returnType != nil {
@@ -273,9 +271,9 @@ func (a *Plugin) writeFunctionSetup(buf *bytes.Buffer, fn core.ParsedFunc) error
 		if pyType.CtypesReturnType != "" {
 			restype = pyType.CtypesReturnType
 		}
-		buf.WriteString(fmt.Sprintf("    lib.%s.restype = %s\n", cFuncName, restype))
+		fmt.Fprintf(buf, "    lib.%s.restype = %s\n", cFuncName, restype)
 	} else {
-		buf.WriteString(fmt.Sprintf("    lib.%s.restype = None\n", cFuncName))
+		fmt.Fprintf(buf, "    lib.%s.restype = None\n", cFuncName)
 	}
 
 	// Add blank line if there was an error param for readability
@@ -291,12 +289,12 @@ func (a *Plugin) writeStructSetup(buf *bytes.Buffer, st core.ParsedStruct) {
 	prefix := st.Name
 
 	// Constructor
-	buf.WriteString(fmt.Sprintf("    lib.%s_New.argtypes = []\n", prefix))
-	buf.WriteString(fmt.Sprintf("    lib.%s_New.restype = c_size_t\n", prefix))
+	fmt.Fprintf(buf, "    lib.%s_New.argtypes = []\n", prefix)
+	fmt.Fprintf(buf, "    lib.%s_New.restype = c_size_t\n", prefix)
 
 	// Destructor
-	buf.WriteString(fmt.Sprintf("    lib.%s_Free.argtypes = [c_size_t]\n", prefix))
-	buf.WriteString(fmt.Sprintf("    lib.%s_Free.restype = None\n", prefix))
+	fmt.Fprintf(buf, "    lib.%s_Free.argtypes = [c_size_t]\n", prefix)
+	fmt.Fprintf(buf, "    lib.%s_Free.restype = None\n", prefix)
 
 	// Field getters/setters
 	for _, field := range st.Fields {
@@ -314,13 +312,13 @@ func (a *Plugin) writeStructSetup(buf *bytes.Buffer, st core.ParsedStruct) {
 		if pyType.CtypesReturnType != "" {
 			restype = pyType.CtypesReturnType
 		}
-		buf.WriteString(fmt.Sprintf("    lib.%s_Get%s.argtypes = [c_size_t]\n", prefix, field.Name))
-		buf.WriteString(fmt.Sprintf("    lib.%s_Get%s.restype = %s\n", prefix, field.Name, restype))
+		fmt.Fprintf(buf, "    lib.%s_Get%s.argtypes = [c_size_t]\n", prefix, field.Name)
+		fmt.Fprintf(buf, "    lib.%s_Get%s.restype = %s\n", prefix, field.Name, restype)
 
 		// Setter (skip for complex types)
 		if !pyType.IsHandle && field.Type.Kind != core.KindSlice && field.Type.Kind != core.KindMap {
-			buf.WriteString(fmt.Sprintf("    lib.%s_Set%s.argtypes = [c_size_t, %s]\n", prefix, field.Name, pyType.CtypesType))
-			buf.WriteString(fmt.Sprintf("    lib.%s_Set%s.restype = None\n", prefix, field.Name))
+			fmt.Fprintf(buf, "    lib.%s_Set%s.argtypes = [c_size_t, %s]\n", prefix, field.Name, pyType.CtypesType)
+			fmt.Fprintf(buf, "    lib.%s_Set%s.restype = None\n", prefix, field.Name)
 		}
 	}
 
@@ -353,12 +351,12 @@ func (a *Plugin) writeStructSetup(buf *bytes.Buffer, st core.ParsedStruct) {
 			}
 		}
 
-		buf.WriteString(fmt.Sprintf("    lib.%s.argtypes = [%s]\n", cFuncName, strings.Join(argtypes, ", ")))
+		fmt.Fprintf(buf, "    lib.%s.argtypes = [%s]\n", cFuncName, strings.Join(argtypes, ", "))
 
 		if returnType != nil {
 			pyType, err := a.mapper.MapType(*returnType)
 			if err != nil {
-				buf.WriteString(fmt.Sprintf("    lib.%s.restype = None\n", cFuncName))
+				fmt.Fprintf(buf, "    lib.%s.restype = None\n", cFuncName)
 				continue
 			}
 			// Use CtypesReturnType if available
@@ -366,9 +364,9 @@ func (a *Plugin) writeStructSetup(buf *bytes.Buffer, st core.ParsedStruct) {
 			if pyType.CtypesReturnType != "" {
 				restype = pyType.CtypesReturnType
 			}
-			buf.WriteString(fmt.Sprintf("    lib.%s.restype = %s\n", cFuncName, restype))
+			fmt.Fprintf(buf, "    lib.%s.restype = %s\n", cFuncName, restype)
 		} else {
-			buf.WriteString(fmt.Sprintf("    lib.%s.restype = None\n", cFuncName))
+			fmt.Fprintf(buf, "    lib.%s.restype = None\n", cFuncName)
 		}
 	}
 
@@ -441,10 +439,8 @@ func (a *Plugin) writeFunction(buf *bytes.Buffer, fn core.ParsedFunc) error {
 	}
 
 	// Build function signature
-	var sigParams []string
 	var typeHints []string
 	for _, p := range params {
-		sigParams = append(sigParams, p.name)
 		typeHints = append(typeHints, fmt.Sprintf("%s: %s", p.name, p.pyType.PyType))
 	}
 
@@ -463,11 +459,11 @@ func (a *Plugin) writeFunction(buf *bytes.Buffer, fn core.ParsedFunc) error {
 	}
 
 	// Write function
-	buf.WriteString(fmt.Sprintf("\ndef %s(%s) -> %s:\n", pyFuncName, strings.Join(typeHints, ", "), returnHint))
+	fmt.Fprintf(buf, "\ndef %s(%s) -> %s:\n", pyFuncName, strings.Join(typeHints, ", "), returnHint)
 
 	// Docstring
 	if fn.Doc != "" {
-		buf.WriteString(fmt.Sprintf("    \"\"\"%s\"\"\"\n", strings.TrimSpace(fn.Doc)))
+		fmt.Fprintf(buf, "    \"\"\"%s\"\"\"\n", strings.TrimSpace(fn.Doc))
 	}
 
 	buf.WriteString("    lib = get_library()\n")
@@ -475,7 +471,7 @@ func (a *Plugin) writeFunction(buf *bytes.Buffer, fn core.ParsedFunc) error {
 	// Convert input parameters
 	for _, p := range params {
 		if p.goType.Kind == core.KindString {
-			buf.WriteString(fmt.Sprintf("    _%s = _encode_string(%s)\n", p.name, p.name))
+			fmt.Fprintf(buf, "    _%s = _encode_string(%s)\n", p.name, p.name)
 		}
 	}
 
@@ -501,9 +497,9 @@ func (a *Plugin) writeFunction(buf *bytes.Buffer, fn core.ParsedFunc) error {
 
 	// Make the call
 	if returnType != nil {
-		buf.WriteString(fmt.Sprintf("    _result = lib.%s(%s)\n", cFuncName, strings.Join(callArgs, ", ")))
+		fmt.Fprintf(buf, "    _result = lib.%s(%s)\n", cFuncName, strings.Join(callArgs, ", "))
 	} else {
-		buf.WriteString(fmt.Sprintf("    lib.%s(%s)\n", cFuncName, strings.Join(callArgs, ", ")))
+		fmt.Fprintf(buf, "    lib.%s(%s)\n", cFuncName, strings.Join(callArgs, ", "))
 	}
 
 	// Check error
@@ -524,7 +520,7 @@ func (a *Plugin) writeFunction(buf *bytes.Buffer, fn core.ParsedFunc) error {
 			if returnType.Type.Kind == core.KindPointer && returnType.Type.ElemType != nil {
 				className = returnType.Type.ElemType.Name
 			}
-			buf.WriteString(fmt.Sprintf("    return %s._from_handle(_result)\n", className))
+			fmt.Fprintf(buf, "    return %s._from_handle(_result)\n", className)
 		} else {
 			buf.WriteString("    return _result\n")
 		}
@@ -538,13 +534,13 @@ func (a *Plugin) writeFunction(buf *bytes.Buffer, fn core.ParsedFunc) error {
 func (a *Plugin) writeClass(buf *bytes.Buffer, st core.ParsedStruct) error {
 	className := st.Name
 
-	buf.WriteString(fmt.Sprintf("\nclass %s:\n", className))
+	fmt.Fprintf(buf, "\nclass %s:\n", className)
 
 	// Docstring
 	if st.Doc != "" {
-		buf.WriteString(fmt.Sprintf("    \"\"\"%s\"\"\"\n", strings.TrimSpace(st.Doc)))
+		fmt.Fprintf(buf, "    \"\"\"%s\"\"\"\n", strings.TrimSpace(st.Doc))
 	} else {
-		buf.WriteString(fmt.Sprintf("    \"\"\"Wrapper for Go %s struct.\"\"\"\n", st.Name))
+		fmt.Fprintf(buf, "    \"\"\"Wrapper for Go %s struct.\"\"\"\n", st.Name)
 	}
 
 	// Constructor
@@ -607,33 +603,33 @@ func (a *Plugin) writeClass(buf *bytes.Buffer, st core.ParsedStruct) error {
 		setFuncName := className + "_Set" + field.Name
 
 		// Getter
-		buf.WriteString(fmt.Sprintf("    @property\n"))
-		buf.WriteString(fmt.Sprintf("    def %s(self) -> %s:\n", propName, pyType.PyType))
-		buf.WriteString(fmt.Sprintf("        \"\"\"Get %s.\"\"\"\n", field.Name))
+		buf.WriteString("    @property\n")
+		fmt.Fprintf(buf, "    def %s(self) -> %s:\n", propName, pyType.PyType)
+		fmt.Fprintf(buf, "        \"\"\"Get %s.\"\"\"\n", field.Name)
 		buf.WriteString("        lib = get_library()\n")
 
 		if field.Type.Kind == core.KindString {
-			buf.WriteString(fmt.Sprintf("        _result = lib.%s(self._handle)\n", getFuncName))
+			fmt.Fprintf(buf, "        _result = lib.%s(self._handle)\n", getFuncName)
 			buf.WriteString("        _ret = _decode_string(_result)\n")
 			buf.WriteString("        lib.Free_String(_result)\n")
 			buf.WriteString("        return _ret\n")
 		} else {
-			buf.WriteString(fmt.Sprintf("        return lib.%s(self._handle)\n", getFuncName))
+			fmt.Fprintf(buf, "        return lib.%s(self._handle)\n", getFuncName)
 		}
 		buf.WriteString("\n")
 
 		// Setter (skip for complex types)
 		if !pyType.IsHandle && field.Type.Kind != core.KindSlice && field.Type.Kind != core.KindMap {
-			buf.WriteString(fmt.Sprintf("    @%s.setter\n", propName))
-			buf.WriteString(fmt.Sprintf("    def %s(self, value: %s) -> None:\n", propName, pyType.PyType))
-			buf.WriteString(fmt.Sprintf("        \"\"\"Set %s.\"\"\"\n", field.Name))
+			fmt.Fprintf(buf, "    @%s.setter\n", propName)
+			fmt.Fprintf(buf, "    def %s(self, value: %s) -> None:\n", propName, pyType.PyType)
+			fmt.Fprintf(buf, "        \"\"\"Set %s.\"\"\"\n", field.Name)
 			buf.WriteString("        lib = get_library()\n")
 
 			if field.Type.Kind == core.KindString {
 				buf.WriteString("        _value = _encode_string(value)\n")
-				buf.WriteString(fmt.Sprintf("        lib.%s(self._handle, _value)\n", setFuncName))
+				fmt.Fprintf(buf, "        lib.%s(self._handle, _value)\n", setFuncName)
 			} else {
-				buf.WriteString(fmt.Sprintf("        lib.%s(self._handle, value)\n", setFuncName))
+				fmt.Fprintf(buf, "        lib.%s(self._handle, value)\n", setFuncName)
 			}
 			buf.WriteString("\n")
 		}
@@ -715,11 +711,11 @@ func (a *Plugin) writeMethod(buf *bytes.Buffer, st core.ParsedStruct, method cor
 	}
 
 	// Write method
-	buf.WriteString(fmt.Sprintf("    def %s(%s) -> %s:\n", pyMethodName, strings.Join(typeHints, ", "), returnHint))
+	fmt.Fprintf(buf, "    def %s(%s) -> %s:\n", pyMethodName, strings.Join(typeHints, ", "), returnHint)
 
 	// Docstring
 	if method.Doc != "" {
-		buf.WriteString(fmt.Sprintf("        \"\"\"%s\"\"\"\n", strings.TrimSpace(method.Doc)))
+		fmt.Fprintf(buf, "        \"\"\"%s\"\"\"\n", strings.TrimSpace(method.Doc))
 	}
 
 	buf.WriteString("        lib = get_library()\n")
@@ -727,7 +723,7 @@ func (a *Plugin) writeMethod(buf *bytes.Buffer, st core.ParsedStruct, method cor
 	// Convert input parameters
 	for _, p := range params {
 		if p.goType.Kind == core.KindString {
-			buf.WriteString(fmt.Sprintf("        _%s = _encode_string(%s)\n", p.name, p.name))
+			fmt.Fprintf(buf, "        _%s = _encode_string(%s)\n", p.name, p.name)
 		}
 	}
 
@@ -754,9 +750,9 @@ func (a *Plugin) writeMethod(buf *bytes.Buffer, st core.ParsedStruct, method cor
 
 	// Make the call
 	if returnType != nil {
-		buf.WriteString(fmt.Sprintf("        _result = lib.%s(%s)\n", cFuncName, strings.Join(callArgs, ", ")))
+		fmt.Fprintf(buf, "        _result = lib.%s(%s)\n", cFuncName, strings.Join(callArgs, ", "))
 	} else {
-		buf.WriteString(fmt.Sprintf("        lib.%s(%s)\n", cFuncName, strings.Join(callArgs, ", ")))
+		fmt.Fprintf(buf, "        lib.%s(%s)\n", cFuncName, strings.Join(callArgs, ", "))
 	}
 
 	// Check error
@@ -777,7 +773,7 @@ func (a *Plugin) writeMethod(buf *bytes.Buffer, st core.ParsedStruct, method cor
 			if returnType.Type.Kind == core.KindPointer && returnType.Type.ElemType != nil {
 				className = returnType.Type.ElemType.Name
 			}
-			buf.WriteString(fmt.Sprintf("        return %s._from_handle(_result)\n", className))
+			fmt.Fprintf(buf, "        return %s._from_handle(_result)\n", className)
 		} else {
 			buf.WriteString("        return _result\n")
 		}

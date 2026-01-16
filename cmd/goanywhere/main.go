@@ -1,8 +1,8 @@
 package main
 
 import (
-	"os"
 	"github.com/riceriley59/goanywhere/internal/cli"
+	"os"
 )
 
 func main() {

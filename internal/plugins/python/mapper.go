@@ -41,8 +41,8 @@ func (m *TypeMapper) MapType(pt core.ParsedType) (PyType, error) {
 
 	case core.KindString:
 		return PyType{
-			CtypesType:       "c_char_p",  // For input parameters
-			CtypesReturnType: "c_void_p",  // For return values (to preserve pointer for freeing)
+			CtypesType:       "c_char_p", // For input parameters
+			CtypesReturnType: "c_void_p", // For return values (to preserve pointer for freeing)
 			PyType:           "str",
 			NeedsFree:        true,
 			IsString:         true,

@@ -43,12 +43,65 @@ build-goanywhere:
 	go build $(GOFLAGS) $(GO_LDFLAGS) -o bin/goanywhere cmd/goanywhere/main.go
 
 
+# Lint Targets
+
+
+.PHONY: format fmt vet lint lint-fix
+
+format:
+	@echo "Formatting Go code..."
+	gofmt -w .
+	@echo "Done."
+
+fmt:
+	@echo "Checking formatting..."
+	@if [ -n "$$(gofmt -l .)" ]; then \
+		echo "The following files are not formatted correctly:"; \
+		gofmt -l .; \
+		exit 1; \
+	fi
+	@echo "All files are properly formatted."
+
+vet:
+	@echo "Running go vet..."
+	go vet $(GOFLAGS) ./...
+
+lint: golangci-lint
+	@echo "Running golangci-lint..."
+	$(GOLANGCI_LINT) run ./...
+
+lint-fix: golangci-lint
+	@echo "Running golangci-lint with auto-fix..."
+	$(GOLANGCI_LINT) run --fix ./...
+
+
 # Test Targets
 
-.PHONY: test unit-tests
 
-test: unit-tests
+.PHONY: test unit-tests coverage coverage-html
 
-unit-tests: ginkgo
-	$(GINKGO) $(GOFLAGS) --cover --coverprofile=unit.coverprofile --output-dir=$(REPORTING) -vv --trace --junit-report=$(REPORTING)/unit.xml --keep-going --timeout=180s ./...
+test: unit-tests coverage
+
+unit-tests: reporting ginkgo
+	go test $(GOFLAGS) -coverprofile=$(REPORTING)/unit.coverprofile -covermode=atomic -coverpkg=./internal/... ./internal/... ./tests/... -v
+
+coverage: reporting
+	@echo ""
+	@echo "=== Coverage Summary ==="
+	@go tool cover -func=$(REPORTING)/unit.coverprofile | tail -1
+	@echo ""
+
+coverage-html: reporting
+	@echo "Generating HTML coverage report..."
+	go tool cover -html=$(REPORTING)/unit.coverprofile -o $(REPORTING)/coverage.html
+	@echo "Coverage report generated at $(REPORTING)/coverage.html"
+
+
+# CI Target
+
+
+.PHONY: ci
+
+ci: fmt vet lint test
+	@echo "CI checks passed!"
 

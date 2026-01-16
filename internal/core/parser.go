@@ -42,7 +42,7 @@ func (p *Parser) ParsePackage(dirPath string) (*ParsedPackage, error) {
 	}
 
 	// Take the first non-test package
-	var pkg *ast.Package
+	var pkg *ast.Package //nolint:staticcheck // ast.Package is returned by parser.ParseDir
 	var pkgName string
 	for name, p := range pkgs {
 		if !strings.HasSuffix(name, "_test") {

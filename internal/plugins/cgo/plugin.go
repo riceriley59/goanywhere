@@ -10,10 +10,8 @@ import (
 	"github.com/riceriley59/goanywhere/internal/core/factory"
 )
 
-
 // Ensure Plugin implements core.Plugin interface
 var _ core.Plugin = (*Plugin)(nil)
-
 
 func init() {
 	factory.Register("cgo", func(verbose bool) core.Plugin {
@@ -280,11 +278,11 @@ func (a *Plugin) writeFunction(buf *bytes.Buffer, fn core.ParsedFunc) error {
 	}
 
 	// Generate function body
-	buf.WriteString(fmt.Sprintf("\n//export %s\n", exportName))
+	fmt.Fprintf(buf, "\n//export %s\n", exportName)
 	if returnType != "" {
-		buf.WriteString(fmt.Sprintf("func %s(%s) %s {\n", exportName, strings.Join(cParams, ", "), returnType))
+		fmt.Fprintf(buf, "func %s(%s) %s {\n", exportName, strings.Join(cParams, ", "), returnType)
 	} else {
-		buf.WriteString(fmt.Sprintf("func %s(%s) {\n", exportName, strings.Join(cParams, ", ")))
+		fmt.Fprintf(buf, "func %s(%s) {\n", exportName, strings.Join(cParams, ", "))
 	}
 
 	// Write conversions
@@ -295,19 +293,19 @@ func (a *Plugin) writeFunction(buf *bytes.Buffer, fn core.ParsedFunc) error {
 	// Call the function
 	if hasError {
 		if len(nonErrorResults) == 1 {
-			buf.WriteString(fmt.Sprintf("\tresult, err := target.%s(%s)\n", fn.Name, strings.Join(goArgs, ", ")))
+			fmt.Fprintf(buf, "\tresult, err := target.%s(%s)\n", fn.Name, strings.Join(goArgs, ", "))
 			buf.WriteString("\tif err != nil {\n")
 			buf.WriteString("\t\t*outError = C.CString(err.Error())\n")
-			buf.WriteString(fmt.Sprintf("\t\treturn %s\n", a.zeroValue(nonErrorResults[0].Type)))
+			fmt.Fprintf(buf, "\t\treturn %s\n", a.zeroValue(nonErrorResults[0].Type))
 			buf.WriteString("\t}\n")
 			buf.WriteString("\t*outError = nil\n")
 			if returnConversion != "" {
-				buf.WriteString(fmt.Sprintf("\treturn %s\n", returnConversion))
+				fmt.Fprintf(buf, "\treturn %s\n", returnConversion)
 			} else {
 				buf.WriteString("\treturn result\n")
 			}
 		} else if len(nonErrorResults) == 0 {
-			buf.WriteString(fmt.Sprintf("\terr := target.%s(%s)\n", fn.Name, strings.Join(goArgs, ", ")))
+			fmt.Fprintf(buf, "\terr := target.%s(%s)\n", fn.Name, strings.Join(goArgs, ", "))
 			buf.WriteString("\tif err != nil {\n")
 			buf.WriteString("\t\t*outError = C.CString(err.Error())\n")
 			buf.WriteString("\t\treturn\n")
@@ -316,14 +314,14 @@ func (a *Plugin) writeFunction(buf *bytes.Buffer, fn core.ParsedFunc) error {
 		}
 	} else {
 		if len(nonErrorResults) == 1 {
-			buf.WriteString(fmt.Sprintf("\tresult := target.%s(%s)\n", fn.Name, strings.Join(goArgs, ", ")))
+			fmt.Fprintf(buf, "\tresult := target.%s(%s)\n", fn.Name, strings.Join(goArgs, ", "))
 			if returnConversion != "" {
-				buf.WriteString(fmt.Sprintf("\treturn %s\n", returnConversion))
+				fmt.Fprintf(buf, "\treturn %s\n", returnConversion)
 			} else {
 				buf.WriteString("\treturn result\n")
 			}
 		} else if len(nonErrorResults) == 0 {
-			buf.WriteString(fmt.Sprintf("\ttarget.%s(%s)\n", fn.Name, strings.Join(goArgs, ", ")))
+			fmt.Fprintf(buf, "\ttarget.%s(%s)\n", fn.Name, strings.Join(goArgs, ", "))
 		}
 	}
 
@@ -335,24 +333,24 @@ func (a *Plugin) writeFunction(buf *bytes.Buffer, fn core.ParsedFunc) error {
 func (a *Plugin) writeStructWrapper(buf *bytes.Buffer, st core.ParsedStruct) error {
 	prefix := st.Name
 
-	buf.WriteString(fmt.Sprintf("\n// ============ %s Struct ============\n", st.Name))
+	fmt.Fprintf(buf, "\n// ============ %s Struct ============\n", st.Name)
 
 	// Write constructor
-	buf.WriteString(fmt.Sprintf(`
+	fmt.Fprintf(buf, `
 //export %s_New
 func %s_New() C.uintptr_t {
 	obj := &target.%s{}
 	return registerHandle(obj)
 }
-`, prefix, prefix, st.Name))
+`, prefix, prefix, st.Name)
 
 	// Write destructor
-	buf.WriteString(fmt.Sprintf(`
+	fmt.Fprintf(buf, `
 //export %s_Free
 func %s_Free(h C.uintptr_t) {
 	freeHandle(h)
 }
-`, prefix, prefix))
+`, prefix, prefix)
 
 	// Write field getters and setters for exported fields
 	for _, field := range st.Fields {
@@ -370,7 +368,7 @@ func %s_Free(h C.uintptr_t) {
 
 		// Getter
 		getterConv := a.generateOutputConversion("obj."+field.Name, field.Type, ctype)
-		buf.WriteString(fmt.Sprintf(`
+		fmt.Fprintf(buf, `
 //export %s_Get%s
 func %s_Get%s(h C.uintptr_t) %s {
 	raw, ok := getHandle(h)
@@ -380,12 +378,12 @@ func %s_Get%s(h C.uintptr_t) %s {
 	obj := raw.(*target.%s)
 	return %s
 }
-`, prefix, field.Name, prefix, field.Name, ctype.CTypeName, a.zeroValue(field.Type), st.Name, getterConv))
+`, prefix, field.Name, prefix, field.Name, ctype.CTypeName, a.zeroValue(field.Type), st.Name, getterConv)
 
 		// Setter (skip for complex types that can't be easily set)
 		if !ctype.IsHandle && field.Type.Kind != core.KindSlice && field.Type.Kind != core.KindMap {
 			setterConv, _ := a.generateInputConversion("val", field.Type, ctype)
-			buf.WriteString(fmt.Sprintf(`
+			fmt.Fprintf(buf, `
 //export %s_Set%s
 func %s_Set%s(h C.uintptr_t, val %s) {
 	raw, ok := getHandle(h)
@@ -395,7 +393,7 @@ func %s_Set%s(h C.uintptr_t, val %s) {
 	obj := raw.(*target.%s)
 	obj.%s = %s
 }
-`, prefix, field.Name, prefix, field.Name, ctype.CTypeName, st.Name, field.Name, setterConv))
+`, prefix, field.Name, prefix, field.Name, ctype.CTypeName, st.Name, field.Name, setterConv)
 		}
 	}
 
@@ -480,11 +478,11 @@ func (a *Plugin) writeMethod(buf *bytes.Buffer, st core.ParsedStruct, method cor
 	}
 
 	// Generate function body
-	buf.WriteString(fmt.Sprintf("\n//export %s\n", exportName))
+	fmt.Fprintf(buf, "\n//export %s\n", exportName)
 	if returnType != "" {
-		buf.WriteString(fmt.Sprintf("func %s(%s) %s {\n", exportName, strings.Join(cParams, ", "), returnType))
+		fmt.Fprintf(buf, "func %s(%s) %s {\n", exportName, strings.Join(cParams, ", "), returnType)
 	} else {
-		buf.WriteString(fmt.Sprintf("func %s(%s) {\n", exportName, strings.Join(cParams, ", ")))
+		fmt.Fprintf(buf, "func %s(%s) {\n", exportName, strings.Join(cParams, ", "))
 	}
 
 	// Get handle
@@ -494,12 +492,12 @@ func (a *Plugin) writeMethod(buf *bytes.Buffer, st core.ParsedStruct, method cor
 		buf.WriteString("\t\t*outError = C.CString(\"invalid handle\")\n")
 	}
 	if returnType != "" {
-		buf.WriteString(fmt.Sprintf("\t\treturn %s\n", a.zeroValue(nonErrorResults[0].Type)))
+		fmt.Fprintf(buf, "\t\treturn %s\n", a.zeroValue(nonErrorResults[0].Type))
 	} else {
 		buf.WriteString("\t\treturn\n")
 	}
 	buf.WriteString("\t}\n")
-	buf.WriteString(fmt.Sprintf("\tobj := raw.(*target.%s)\n", st.Name))
+	fmt.Fprintf(buf, "\tobj := raw.(*target.%s)\n", st.Name)
 
 	// Write conversions
 	for _, conv := range conversions {
@@ -509,19 +507,19 @@ func (a *Plugin) writeMethod(buf *bytes.Buffer, st core.ParsedStruct, method cor
 	// Call the method
 	if hasError {
 		if len(nonErrorResults) == 1 {
-			buf.WriteString(fmt.Sprintf("\tresult, err := obj.%s(%s)\n", method.Name, strings.Join(goArgs, ", ")))
+			fmt.Fprintf(buf, "\tresult, err := obj.%s(%s)\n", method.Name, strings.Join(goArgs, ", "))
 			buf.WriteString("\tif err != nil {\n")
 			buf.WriteString("\t\t*outError = C.CString(err.Error())\n")
-			buf.WriteString(fmt.Sprintf("\t\treturn %s\n", a.zeroValue(nonErrorResults[0].Type)))
+			fmt.Fprintf(buf, "\t\treturn %s\n", a.zeroValue(nonErrorResults[0].Type))
 			buf.WriteString("\t}\n")
 			buf.WriteString("\t*outError = nil\n")
 			if returnConversion != "" {
-				buf.WriteString(fmt.Sprintf("\treturn %s\n", returnConversion))
+				fmt.Fprintf(buf, "\treturn %s\n", returnConversion)
 			} else {
 				buf.WriteString("\treturn result\n")
 			}
 		} else if len(nonErrorResults) == 0 {
-			buf.WriteString(fmt.Sprintf("\terr := obj.%s(%s)\n", method.Name, strings.Join(goArgs, ", ")))
+			fmt.Fprintf(buf, "\terr := obj.%s(%s)\n", method.Name, strings.Join(goArgs, ", "))
 			buf.WriteString("\tif err != nil {\n")
 			buf.WriteString("\t\t*outError = C.CString(err.Error())\n")
 			buf.WriteString("\t\treturn\n")
@@ -530,14 +528,14 @@ func (a *Plugin) writeMethod(buf *bytes.Buffer, st core.ParsedStruct, method cor
 		}
 	} else {
 		if len(nonErrorResults) == 1 {
-			buf.WriteString(fmt.Sprintf("\tresult := obj.%s(%s)\n", method.Name, strings.Join(goArgs, ", ")))
+			fmt.Fprintf(buf, "\tresult := obj.%s(%s)\n", method.Name, strings.Join(goArgs, ", "))
 			if returnConversion != "" {
-				buf.WriteString(fmt.Sprintf("\treturn %s\n", returnConversion))
+				fmt.Fprintf(buf, "\treturn %s\n", returnConversion)
 			} else {
 				buf.WriteString("\treturn result\n")
 			}
 		} else if len(nonErrorResults) == 0 {
-			buf.WriteString(fmt.Sprintf("\tobj.%s(%s)\n", method.Name, strings.Join(goArgs, ", ")))
+			fmt.Fprintf(buf, "\tobj.%s(%s)\n", method.Name, strings.Join(goArgs, ", "))
 		}
 	}
 
