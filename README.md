@@ -1,5 +1,10 @@
 # GoAnywhere
 
+[![CI](https://github.com/riceriley59/goanywhere/actions/workflows/ci.yaml/badge.svg)](https://github.com/riceriley59/goanywhere/actions/workflows/ci.yaml)
+[![Coverage Status](https://coveralls.io/repos/github/riceriley59/goanywhere/badge.svg?branch=main)](https://coveralls.io/github/riceriley59/goanywhere?branch=main)
+[![Go Version](https://img.shields.io/badge/go-1.25.6-blue.svg)](https://golang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Generate language bindings for your Go libraries to use them from Python, C, and other languages.
 
 GoAnywhere parses your Go packages and generates wrapper code that exposes your functions and structs to other languages through CGO shared libraries or Python ctypes bindings.
