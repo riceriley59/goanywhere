@@ -54,22 +54,25 @@ jobs:
         with:
           go-version: "1.25.6"
 
-      - name: Build binary
+      - name: Build and package binary
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          BINARY_NAME="goanywhere-${{ matrix.goos }}-${{ matrix.goarch }}"
+          ARCHIVE_NAME="goanywhere-${{ matrix.goos }}-${{ matrix.goarch }}"
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            BINARY_NAME="${BINARY_NAME}.exe"
+            go build -ldflags="-s -w" -o goanywhere.exe ./cmd/goanywhere
+            zip "${ARCHIVE_NAME}.zip" goanywhere.exe
+          else
+            go build -ldflags="-s -w" -o goanywhere ./cmd/goanywhere
+            tar -czvf "${ARCHIVE_NAME}.tar.gz" goanywhere
           fi
-          go build -ldflags="-s -w" -o "${BINARY_NAME}" ./cmd/goanywhere
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: goanywhere-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: goanywhere-${{ matrix.goos }}-${{ matrix.goarch }}*
+          path: goanywhere-${{ matrix.goos }}-${{ matrix.goarch }}.*
 
   release:
     needs: build
