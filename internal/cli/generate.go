@@ -12,8 +12,8 @@ import (
 	"github.com/riceriley59/goanywhere/internal/core/factory"
 
 	// Register plugins
-	_ "github.com/riceriley59/goanywhere/internal/plugins/cgo"
-	_ "github.com/riceriley59/goanywhere/internal/plugins/python"
+	_ "github.com/riceriley59/goanywhere/plugins/cgo"
+	_ "github.com/riceriley59/goanywhere/plugins/python"
 )
 
 type generateOptions struct {

@@ -8,7 +8,7 @@
 /internal/core/ @riceriley59
 
 # Plugin implementations
-/internal/plugins/ @riceriley59
+/plugins/ @riceriley59
 
 # CLI
 /internal/cli/ @riceriley59

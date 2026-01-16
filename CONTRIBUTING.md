@@ -85,7 +85,7 @@ When reporting issues, please include:
 
 If you're adding a new language plugin:
 
-1. Create a new package under `internal/plugins/<language>/`
+1. Create a new package under `plugins/<language>/`
 2. Implement the `core.Plugin` interface
 3. Register the plugin in `init()` using `factory.Register()`
 4. Add comprehensive tests
