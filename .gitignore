@@ -1,4 +1,8 @@
 # Binaries
 bin/
 
+# AI tools
 .claude
+
+# Go coverage files
+reporting/
