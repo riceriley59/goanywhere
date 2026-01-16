@@ -6,7 +6,7 @@ include deps.mk
 
 
 GIT_SHA 		:= $(shell git rev-parse --short HEAD)
-GIT_TAG_LAST 	:= $(shell git tag --list 'operator*' --sort=-v:refname | head -n 1 | cut -d/ -f2)
+GIT_TAG_LAST 	:= $(shell git tag --list 'v*' --sort=-v:refname | head -n 1)
 
 ## GO Flags
 GO_LDFLAGS  := -ldflags "-X github.com/riceriley59/goanywhere/internal/version.GIT_SHA=$(GIT_SHA) \

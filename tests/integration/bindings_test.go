@@ -9,8 +9,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/riceriley59/goanywhere/internal/core"
-	"github.com/riceriley59/goanywhere/internal/plugins/cgo"
-	"github.com/riceriley59/goanywhere/internal/plugins/python"
+	"github.com/riceriley59/goanywhere/plugins/cgo"
+	"github.com/riceriley59/goanywhere/plugins/python"
 )
 
 func TestIntegration(t *testing.T) {
