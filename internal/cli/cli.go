@@ -32,6 +32,7 @@ func NewGoAnywhereCmd() *cobra.Command {
 
 	// Add subcommands
 	goAnywhereCmd.AddCommand(NewGenerateCmd())
+	goAnywhereCmd.AddCommand(NewBuildCmd())
 
 	return goAnywhereCmd
 }

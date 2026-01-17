@@ -20,6 +20,9 @@ type mockPlugin struct {
 
 func (m *mockPlugin) Name() string                                     { return m.name }
 func (m *mockPlugin) Generate(pkg *core.ParsedPackage) ([]byte, error) { return nil, nil }
+func (m *mockPlugin) Build(pkg *core.ParsedPackage, inputPath string, opts *core.BuildOptions) error {
+	return nil
+}
 
 var _ = Describe("Plugin factory", func() {
 	Describe("Register and Get", func() {

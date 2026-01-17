@@ -1,6 +1,13 @@
 # Usage Guide
 
-## Command Overview
+## Commands
+
+GoAnywhere provides two main commands:
+
+- `generate` - Generate language binding source code
+- `build` - Generate and compile bindings into distributable packages
+
+## Generate Command
 
 ```bash
 goanywhere generate <input-directory> [flags]
@@ -14,6 +21,83 @@ goanywhere generate <input-directory> [flags]
 | `--import-path` | `-i` | Import path for the target package | Auto-detected from go.mod |
 | `--plugin` | `-p` | Plugin type (`cgo`, `python`) | `cgo` |
 | `--verbose` | `-v` | Show parsed constructs and skipped items | `false` |
+
+## Build Command
+
+The `build` command generates binding code and compiles it into ready-to-use packages.
+
+```bash
+goanywhere build <input-directory> [flags]
+```
+
+### Flags
+
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--output` | `-o` | Output directory for built artifacts | `<input>/<plugin>_build` |
+| `--import-path` | `-i` | Import path for the target package | Auto-detected from go.mod |
+| `--plugin` | `-p` | Plugin type (`cgo`, `python`) | `cgo` |
+| `--build-system` | | Python build system (`setuptools`, `hatch`, `poetry`, `uv`) | `setuptools` |
+| `--lib-name` | | Override the default library name | `lib<package>` |
+| `--verbose` | `-v` | Show build progress and details | `false` |
+
+### CGO Build
+
+Build a shared library from your Go package:
+
+```bash
+goanywhere build ./mypackage --plugin cgo
+```
+
+This generates CGO bindings and compiles them into a shared library (`.so` on Linux, `.dylib` on macOS, `.dll` on Windows).
+
+### Python Build
+
+Build a complete Python package with shared library:
+
+```bash
+goanywhere build ./mypackage --plugin python
+```
+
+This creates a distributable Python package structure:
+
+```
+mypackage/python_build/
+├── mypackage/
+│   ├── __init__.py
+│   ├── bindings.py
+│   └── lib/
+│       └── libmypackage.so
+├── cgo_plugin/
+│   └── main.go
+├── libmypackage.so
+└── pyproject.toml
+```
+
+### Python Build Systems
+
+Choose your preferred Python build system:
+
+```bash
+# setuptools (default)
+goanywhere build ./mypackage --plugin python --build-system setuptools
+
+# hatch
+goanywhere build ./mypackage --plugin python --build-system hatch
+
+# poetry
+goanywhere build ./mypackage --plugin python --build-system poetry
+
+# uv
+goanywhere build ./mypackage --plugin python --build-system uv
+```
+
+After building, install the package:
+
+```bash
+cd mypackage/python_build
+pip install -e .
+```
 
 ## Examples
 
@@ -60,6 +144,8 @@ goanywhere generate ./mypackage -v
 ```
 
 ## Building the Generated Code
+
+> **Tip:** Use `goanywhere build` to automate these steps. See [Build Command](#build-command).
 
 ### CGO Shared Library
 
@@ -131,7 +217,16 @@ mypackage/
 
 ## Workflow
 
+### Using Generate (Manual Build)
+
 1. Write your Go library with exported functions and structs
 2. Run `goanywhere generate ./mypackage`
 3. Build the shared library with `go build -buildmode=c-shared`
 4. Use the library from C, Python, or other languages
+
+### Using Build (Automated)
+
+1. Write your Go library with exported functions and structs
+2. Run `goanywhere build ./mypackage --plugin python`
+3. Install the package with `pip install -e ./mypackage/python_build`
+4. Import and use in Python
