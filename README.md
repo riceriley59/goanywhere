@@ -73,7 +73,3 @@ make lint
 # Run all CI checks
 make ci
 ```
-
-## License
-
-MIT
