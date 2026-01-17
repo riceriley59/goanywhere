@@ -3,6 +3,10 @@ package cgo
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"text/template"
 
@@ -614,4 +618,72 @@ func capitalize(s string) string {
 		return s
 	}
 	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+// Build generates CGO code and compiles it to a shared library
+func (a *Plugin) Build(pkg *core.ParsedPackage, inputPath string, opts *core.BuildOptions) error {
+	// Generate CGO code
+	if opts.Verbose {
+		fmt.Println("Generating CGO wrapper code...")
+	}
+	code, err := a.Generate(pkg)
+	if err != nil {
+		return fmt.Errorf("generation error: %w", err)
+	}
+
+	// Write generated code
+	cgoDir := filepath.Join(opts.OutputDir, "cgo_plugin")
+	if err := os.MkdirAll(cgoDir, 0755); err != nil {
+		return fmt.Errorf("cannot create cgo directory: %w", err)
+	}
+
+	cgoFile := filepath.Join(cgoDir, "main.go")
+	if err := os.WriteFile(cgoFile, code, 0644); err != nil {
+		return fmt.Errorf("write error: %w", err)
+	}
+	fmt.Printf("Generated CGO wrapper: %s\n", cgoFile)
+
+	// Determine library name and extension
+	libName := opts.LibraryName
+	if libName == "" {
+		libName = "lib" + pkg.Name
+	}
+	libExt := getSharedLibExtension()
+	libFile := filepath.Join(opts.OutputDir, libName+libExt)
+
+	// Build shared library
+	if opts.Verbose {
+		fmt.Printf("Building shared library: %s\n", libFile)
+	}
+
+	cmd := exec.Command("go", "build", "-buildmode=c-shared", "-o", libFile, cgoFile)
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=1")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("build failed: %w", err)
+	}
+
+	fmt.Printf("Built shared library: %s\n", libFile)
+
+	// Note about header file
+	headerFile := filepath.Join(opts.OutputDir, libName+".h")
+	if _, err := os.Stat(headerFile); err == nil {
+		fmt.Printf("Generated header file: %s\n", headerFile)
+	}
+
+	return nil
+}
+
+// getSharedLibExtension returns the platform-specific shared library extension
+func getSharedLibExtension() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return ".dylib"
+	case "windows":
+		return ".dll"
+	default:
+		return ".so"
+	}
 }

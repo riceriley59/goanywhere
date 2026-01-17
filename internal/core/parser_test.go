@@ -183,4 +183,131 @@ var _ = Describe("Parser", func() {
 			Expect(isExported("")).To(BeFalse())
 		})
 	})
+
+	Describe("ParsePackage with complex types", func() {
+		var complexDir string
+
+		BeforeEach(func() {
+			wd, _ := os.Getwd()
+			complexDir = filepath.Join(wd, "..", "..", "tests", "fixtures", "complex")
+		})
+
+		It("parses array types", func() {
+			pkg, err := parser.ParsePackage(complexDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			var arrayFn *ParsedFunc
+			for i := range pkg.Functions {
+				if pkg.Functions[i].Name == "ProcessArray" {
+					arrayFn = &pkg.Functions[i]
+					break
+				}
+			}
+			Expect(arrayFn).NotTo(BeNil())
+			Expect(arrayFn.Params).To(HaveLen(1))
+			Expect(arrayFn.Params[0].Type.Kind).To(Equal(KindArray))
+			Expect(arrayFn.Params[0].Type.Size).To(Equal(10))
+		})
+
+		It("parses slice types", func() {
+			pkg, err := parser.ParsePackage(complexDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			var sliceFn *ParsedFunc
+			for i := range pkg.Functions {
+				if pkg.Functions[i].Name == "ProcessSlice" {
+					sliceFn = &pkg.Functions[i]
+					break
+				}
+			}
+			Expect(sliceFn).NotTo(BeNil())
+			Expect(sliceFn.Params).To(HaveLen(1))
+			Expect(sliceFn.Params[0].Type.Kind).To(Equal(KindSlice))
+		})
+
+		It("parses map types", func() {
+			pkg, err := parser.ParsePackage(complexDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			var mapFn *ParsedFunc
+			for i := range pkg.Functions {
+				if pkg.Functions[i].Name == "ProcessMap" {
+					mapFn = &pkg.Functions[i]
+					break
+				}
+			}
+			Expect(mapFn).NotTo(BeNil())
+			Expect(mapFn.Params).To(HaveLen(1))
+			Expect(mapFn.Params[0].Type.Kind).To(Equal(KindMap))
+		})
+
+		It("parses pointer types", func() {
+			pkg, err := parser.ParsePackage(complexDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			var ptrFn *ParsedFunc
+			for i := range pkg.Functions {
+				if pkg.Functions[i].Name == "ProcessPointer" {
+					ptrFn = &pkg.Functions[i]
+					break
+				}
+			}
+			Expect(ptrFn).NotTo(BeNil())
+			Expect(ptrFn.Params).To(HaveLen(1))
+			Expect(ptrFn.Params[0].Type.Kind).To(Equal(KindPointer))
+		})
+
+		It("parses interface types", func() {
+			pkg, err := parser.ParsePackage(complexDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			var ifaceFn *ParsedFunc
+			for i := range pkg.Functions {
+				if pkg.Functions[i].Name == "ProcessInterface" {
+					ifaceFn = &pkg.Functions[i]
+					break
+				}
+			}
+			Expect(ifaceFn).NotTo(BeNil())
+			Expect(ifaceFn.Params).To(HaveLen(1))
+			Expect(ifaceFn.Params[0].Type.Kind).To(Equal(KindInterface))
+		})
+
+		It("parses struct with various field types", func() {
+			pkg, err := parser.ParsePackage(complexDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			var config *ParsedStruct
+			for i := range pkg.Structs {
+				if pkg.Structs[i].Name == "Config" {
+					config = &pkg.Structs[i]
+					break
+				}
+			}
+			Expect(config).NotTo(BeNil())
+			Expect(config.Fields).To(HaveLen(4))
+
+			// Check field types
+			fieldTypes := make(map[string]TypeKind)
+			for _, f := range config.Fields {
+				fieldTypes[f.Name] = f.Type.Kind
+			}
+			Expect(fieldTypes["Name"]).To(Equal(KindString))
+			Expect(fieldTypes["Values"]).To(Equal(KindSlice))
+			Expect(fieldTypes["Data"]).To(Equal(KindArray))
+			Expect(fieldTypes["Options"]).To(Equal(KindMap))
+		})
+	})
+
+	Describe("Verbose parser", func() {
+		It("runs without errors in verbose mode", func() {
+			wd, _ := os.Getwd()
+			fixtureDir := filepath.Join(wd, "..", "..", "tests", "fixtures", "simple")
+
+			verboseParser := NewParser(true)
+			pkg, err := verboseParser.ParsePackage(fixtureDir)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pkg).NotTo(BeNil())
+		})
+	})
 })

@@ -86,10 +86,29 @@ When reporting issues, please include:
 If you're adding a new language plugin:
 
 1. Create a new package under `plugins/<language>/`
-2. Implement the `core.Plugin` interface
+2. Implement the `core.Plugin` interface:
+   ```go
+   type Plugin interface {
+       // Name returns the plugin name (e.g., "cgo", "python")
+       Name() string
+
+       // Generate produces binding code for the given parsed package
+       Generate(pkg *ParsedPackage) ([]byte, error)
+
+       // Build generates code and compiles/packages it for distribution
+       Build(pkg *ParsedPackage, inputPath string, opts *BuildOptions) error
+   }
+   ```
 3. Register the plugin in `init()` using `factory.Register()`
-4. Add comprehensive tests
+4. Add comprehensive tests for both `Generate` and `Build` methods
 5. Update documentation in `docs/`
+
+### Plugin Implementation Tips
+
+- The `Generate` method should return the generated source code as bytes
+- The `Build` method should handle the full build pipeline (generate code, compile, package)
+- Use `core.BuildOptions` to access output directory, library name, build system, and verbose flag
+- For languages that need a shared library (like Python), call the CGO plugin's `Build` method first
 
 ## Questions?
 

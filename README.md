@@ -1,9 +1,10 @@
 # GoAnywhere
 
-[![CI](https://github.com/riceriley59/goanywhere/actions/workflows/ci.yaml/badge.svg)](https://github.com/riceriley59/goanywhere/actions/workflows/ci.yaml)
-[![Coverage Status](https://coveralls.io/repos/github/riceriley59/goanywhere/badge.svg?branch=main)](https://coveralls.io/github/riceriley59/goanywhere?branch=main)
-[![Go Version](https://img.shields.io/badge/go-1.25.6-blue.svg)](https://golang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/riceriley59/goanywhere/actions/workflows/ci.yaml/badge.svg)](https://github.com/riceriley59/goanywhere/actions/workflows/ci.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/riceriley59/goanywhere)](https://goreportcard.com/report/github.com/riceriley59/goanywhere)
+[![Go Version](https://img.shields.io/badge/go-1.23-blue.svg)](https://golang.org/)
+[![Coverage Status](https://coveralls.io/repos/github/riceriley59/goanywhere/badge.svg?branch=main)](https://coveralls.io/github/riceriley59/goanywhere?branch=main)
 
 Generate language bindings for your Go libraries to use them from Python, C, and other languages.
 
@@ -40,8 +41,11 @@ goanywhere generate ./mypackage
 # Generate Python bindings
 goanywhere generate ./mypackage --plugin python
 
-# Specify output file
-goanywhere generate ./mypackage -o ./bindings/main.go
+# Build CGO shared library directly
+goanywhere build ./mypackage --plugin cgo
+
+# Build Python package with shared library
+goanywhere build ./mypackage --plugin python
 ```
 
 ## Documentation

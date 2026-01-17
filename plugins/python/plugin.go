@@ -3,6 +3,8 @@ package python
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/riceriley59/goanywhere/internal/core"
@@ -804,4 +806,204 @@ func toSnakeCase(s string) string {
 		}
 	}
 	return string(result)
+}
+
+// Build generates Python bindings and creates a distributable Python package
+func (a *Plugin) Build(pkg *core.ParsedPackage, inputPath string, opts *core.BuildOptions) error {
+	// First, build the CGO shared library (Python needs it)
+	if opts.Verbose {
+		fmt.Println("Building CGO shared library for Python bindings...")
+	}
+
+	// Get CGO plugin and build the shared library
+	cgoPlugin, err := factory.Get("cgo", opts.Verbose)
+	if err != nil {
+		return fmt.Errorf("failed to get CGO plugin: %w", err)
+	}
+
+	if err := cgoPlugin.Build(pkg, inputPath, opts); err != nil {
+		return fmt.Errorf("failed to build CGO library: %w", err)
+	}
+
+	// Generate Python bindings
+	if opts.Verbose {
+		fmt.Println("Generating Python bindings...")
+	}
+	code, err := a.Generate(pkg)
+	if err != nil {
+		return fmt.Errorf("generation error: %w", err)
+	}
+
+	// Create Python package structure
+	pythonPkgName := strings.ReplaceAll(pkg.Name, "-", "_")
+	pkgDir := filepath.Join(opts.OutputDir, pythonPkgName)
+	libDir := filepath.Join(pkgDir, "lib")
+
+	if err := os.MkdirAll(libDir, 0755); err != nil {
+		return fmt.Errorf("cannot create package directory: %w", err)
+	}
+
+	// Write Python bindings
+	bindingsFile := filepath.Join(pkgDir, "bindings.py")
+	if err := os.WriteFile(bindingsFile, code, 0644); err != nil {
+		return fmt.Errorf("write error: %w", err)
+	}
+	fmt.Printf("Generated Python bindings: %s\n", bindingsFile)
+
+	// Write __init__.py
+	initContent := fmt.Sprintf(`"""Python bindings for %s"""
+from .bindings import *
+`, pkg.Name)
+	initFile := filepath.Join(pkgDir, "__init__.py")
+	if err := os.WriteFile(initFile, []byte(initContent), 0644); err != nil {
+		return fmt.Errorf("write error: %w", err)
+	}
+
+	// Copy shared library to lib directory
+	libName := opts.LibraryName
+	if libName == "" {
+		libName = "lib" + pkg.Name
+	}
+	libExt := getSharedLibExtension()
+	srcLib := filepath.Join(opts.OutputDir, libName+libExt)
+	dstLib := filepath.Join(libDir, libName+libExt)
+
+	if err := copyFile(srcLib, dstLib); err != nil {
+		return fmt.Errorf("failed to copy library: %w", err)
+	}
+
+	// Generate pyproject.toml based on build system
+	pyprojectContent := generatePyprojectToml(pythonPkgName, opts.BuildSystem)
+	pyprojectFile := filepath.Join(opts.OutputDir, "pyproject.toml")
+	if err := os.WriteFile(pyprojectFile, []byte(pyprojectContent), 0644); err != nil {
+		return fmt.Errorf("write error: %w", err)
+	}
+	fmt.Printf("Generated pyproject.toml: %s\n", pyprojectFile)
+
+	// Print instructions
+	fmt.Printf("\nPython package created at: %s\n", opts.OutputDir)
+	fmt.Println("\nTo install the package:")
+	fmt.Printf("  cd %s\n", opts.OutputDir)
+	fmt.Println("  pip install -e .")
+	fmt.Println("\nTo build a distributable package:")
+	switch opts.BuildSystem {
+	case "hatch":
+		fmt.Println("  hatch build")
+	case "poetry":
+		fmt.Println("  poetry build")
+	case "uv":
+		fmt.Println("  uv build")
+	default:
+		fmt.Println("  pip install build")
+		fmt.Println("  python -m build")
+	}
+
+	return nil
+}
+
+// getSharedLibExtension returns the platform-specific shared library extension
+func getSharedLibExtension() string {
+	switch os.Getenv("GOOS") {
+	case "darwin":
+		return ".dylib"
+	case "windows":
+		return ".dll"
+	case "":
+		// Check runtime if GOOS not set
+		switch filepath.Separator {
+		case '/':
+			// Unix-like, check for macOS
+			if _, err := os.Stat("/System/Library"); err == nil {
+				return ".dylib"
+			}
+			return ".so"
+		case '\\':
+			return ".dll"
+		}
+	}
+	return ".so"
+}
+
+// copyFile copies a file from src to dst
+func copyFile(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, data, 0644)
+}
+
+// generatePyprojectToml generates the pyproject.toml content based on build system
+func generatePyprojectToml(pkgName, buildSystem string) string {
+	switch buildSystem {
+	case "hatch":
+		return fmt.Sprintf(`[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "%s"
+version = "0.1.0"
+description = "Python bindings for %s"
+requires-python = ">=3.8"
+
+[tool.hatch.build.targets.wheel]
+packages = ["%s"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"%s/lib" = "lib"
+`, pkgName, pkgName, pkgName, pkgName)
+
+	case "poetry":
+		return fmt.Sprintf(`[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "%s"
+version = "0.1.0"
+description = "Python bindings for %s"
+authors = []
+
+[tool.poetry.dependencies]
+python = ">=3.8"
+
+[tool.poetry.packages]
+include = "%s"
+`, pkgName, pkgName, pkgName)
+
+	case "uv":
+		// uv is compatible with standard pyproject.toml (setuptools or hatch)
+		return fmt.Sprintf(`[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "%s"
+version = "0.1.0"
+description = "Python bindings for %s"
+requires-python = ">=3.8"
+
+[tool.hatch.build.targets.wheel]
+packages = ["%s"]
+`, pkgName, pkgName, pkgName)
+
+	default: // setuptools
+		return fmt.Sprintf(`[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "%s"
+version = "0.1.0"
+description = "Python bindings for %s"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+"%s" = ["lib/*"]
+`, pkgName, pkgName, pkgName)
+	}
 }
